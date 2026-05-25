@@ -7,6 +7,8 @@ class Config:
 
     RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
     QUEUE_NAME = os.getenv("QUEUE_NAME", "image_jobs")
+    DLX_NAME = os.getenv("DLX_NAME", "image_jobs_dlx")
+    DLQ_NAME = os.getenv("DLQ_NAME", "image_jobs_dlq")
     
     REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
     
