@@ -13,6 +13,8 @@ def mock_config():
     with patch("worker.rabbitmq_consumer.config") as mock:
         mock.RABBITMQ_URL = "amqp://guest:guest@localhost/"
         mock.QUEUE_NAME = "test_queue"
+        mock.DLX_NAME = "image_jobs_dlx"
+        mock.DLQ_NAME = "image_jobs_dlq"
         yield mock
 
 @pytest.fixture
@@ -43,9 +45,15 @@ def test_connect_establishes_connection(mock_pika, mock_config):
     assert consumer.connection == connection
     assert consumer.channel == channel
 
-    channel.queue_declare.assert_called_once_with(
+    queue_args = {
+        "x-dead-letter-exchange": "image_jobs_dlx",
+        "x-dead-letter-routing-key": "image_jobs_dlq"
+    }
+
+    channel.queue_declare.assert_any_call(
         queue=mock_config.QUEUE_NAME,
-        durable=True
+        durable=True,
+        arguments=queue_args
     )
 
     channel.basic_qos.assert_called_once_with(prefetch_count=1)

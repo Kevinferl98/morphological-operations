@@ -19,7 +19,35 @@ class RabbitMQConsumer:
                 params = pika.URLParameters(config.RABBITMQ_URL)
                 self.connection = pika.BlockingConnection(params)
                 self.channel = self.connection.channel()
-                self.channel.queue_declare(queue=config.QUEUE_NAME, durable=True)
+
+                self.channel.exchange_declare(
+                    exchange=config.DLX_NAME,
+                    exchange_type="direct",
+                    durable=True
+                )
+
+                self.channel.queue_declare(
+                    queue=config.DLQ_NAME,
+                    durable=True
+                )
+
+                self.channel.queue_bind(
+                    exchange=config.DLX_NAME,
+                    queue=config.DLQ_NAME,
+                    routing_key=config.DLQ_NAME
+                )
+
+                queue_args = {
+                    "x-dead-letter-exchange": config.DLX_NAME,
+                    "x-dead-letter-routing-key": config.DLQ_NAME
+                }
+
+                self.channel.queue_declare(
+                    queue=config.QUEUE_NAME,
+                    durable=True,
+                    arguments=queue_args
+                )
+                
                 self.channel.basic_qos(prefetch_count=1)
                 break
             except pika.exceptions.AMQPConnectionError:

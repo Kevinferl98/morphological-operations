@@ -28,7 +28,7 @@ The actual image processing is handled by a dedicated Worker service. This servi
 1. **Frontend**: Requests a Presigned URL from the API and uploads the input image directly to Amazon S3 (or MinIO). It then submits the job parameters to the API.
 2. **API Service**: Persists the job metadata in Redis and publishes a task message to RabbitMQ to initiate asynchronous processing.
 3. **RabbitMQ**: Acts as the message broker, securely queuing jobs and distributing them to available background workers.
-4. **Worker Service**: Consumes the task from the queue, downloads the original image from S3, executes the morphological transformation, and uploads the processed result back to S3. Finally, it updates the job status in Redis.
+4. **Worker Service**: Consumes the task from the queue, downloads the original image from S3, executes the morphological transformation, and uploads the processed result back to S3. Finally, it updates the job status in Redis. In case of unrecoverable processing errors, the worker issues a `basic_nack(requeue=False)`, prompting RabbitMQ to route the message to the DLQ for debugging.
 5. **Status Polling**: The frontend periodically polls the API to monitor progress. Once the task is marked as completed, the API provides a presigned URL to securely download the result image.
 
 ## Tech Stack
@@ -47,6 +47,8 @@ The actual image processing is handled by a dedicated Worker service. This servi
 **S3 Presigned URLs**: Images are uploaded directly from the browser to object storage, reducing API load and avoiding large file transfers through FastAPI.
 
 **Task Persistence**: Using Redis for job status allows for fast, non-blocking lookups during frontend polling.
+
+**Fault Tolerance**: The messaging infrastructure uses a DLQ pattern to isolate corrupt payloads or unhandled processing exceptions.
 
 **Reliability**: A GitHub Actions workflow is integrated to run automated tests and check code coverage on every push.
 

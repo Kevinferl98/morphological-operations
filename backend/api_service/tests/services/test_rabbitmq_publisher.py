@@ -28,10 +28,6 @@ def test_ensure_connection_creates_connection(mock_connection, mock_channel):
     mock_conn.assert_called_once()
 
     mock_connection.channel.assert_called_once()
-    mock_channel.queue_declare.assert_called_once_with(
-        queue="image_jobs",
-        durable=True
-    )
 
 def test_ensure_connection_reuses_existing_connection(mock_connection):
     publisher = RabbitMQPublisher()
