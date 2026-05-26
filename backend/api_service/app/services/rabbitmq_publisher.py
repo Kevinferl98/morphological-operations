@@ -18,7 +18,6 @@ class RabbitMQPublisher:
             params = pika.URLParameters(RABBITMQ_URL)
             self.connection = pika.BlockingConnection(params)
             self.channel = self.connection.channel()
-            self.channel.queue_declare(queue=QUEUE_NAME, durable=True)
 
     def publish_job(self, job_id):
         self._ensure_connection()
