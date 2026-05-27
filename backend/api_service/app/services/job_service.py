@@ -5,6 +5,7 @@ from app.services.redis_client import RedisClient
 from app.services.minio_client import MinioClient
 from app.services.rabbitmq_publisher import RabbitMQPublisher
 from app.exceptions import BadRequestError, NotFoundError
+from app.schemas.job import MorphologicalParams
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +20,7 @@ class JobService:
         url = self.minio_client.generate_presigned_upload_url(filename)
         return url, filename
 
-    def create_job(self, image_key: str, params: dict):
+    def create_job(self, image_key: str, params: MorphologicalParams):
         try:
             self.minio_client.head_object(image_key)
         except Exception:
