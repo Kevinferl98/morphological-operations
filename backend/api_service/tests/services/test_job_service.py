@@ -1,21 +1,24 @@
 import json
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, create_autospec
+from app.services.minio_client import MinioClient
+from app.services.rabbitmq_publisher import RabbitMQPublisher
+from app.services.redis_client import RedisClient
 from app.services.job_service import JobService
 from app.exceptions import BadRequestError, NotFoundError
 from app.schemas.job import MorphologicalParams
 
 @pytest.fixture
 def redis_mock():
-    return MagicMock()
+    return create_autospec(RedisClient, instance=True)
 
 @pytest.fixture
 def publisher_mock():
-    return MagicMock()
+    return create_autospec(RabbitMQPublisher, instance=True)
 
 @pytest.fixture
 def minio_mock():
-    return MagicMock()
+    return create_autospec(MinioClient, instance=True)
 
 @pytest.fixture
 def job_service(redis_mock, publisher_mock, minio_mock):
