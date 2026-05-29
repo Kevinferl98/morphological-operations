@@ -1,72 +1,43 @@
 import pytest
 import json
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from app.services.redis_client import RedisClient
 
 @pytest.fixture
-def redis_mock():
+def mock_redis_backend():
     return MagicMock()
 
 @pytest.fixture
-def mock_config():
-    class FakeConfig:
-        REDIS_URL = "redis://localhost:6379/0"
-    return FakeConfig()
+def redis_client(mock_redis_backend):
+    return RedisClient(redis_instance=mock_redis_backend)
 
-def test_redis_client_initialization(redis_mock, mock_config):
-    with patch("app.services.redis_client.config", mock_config):
-        with patch(
-            "app.services.redis_client.redis.Redis.from_url",
-            return_value=redis_mock
-        ) as mock_from_url:
-            client = RedisClient()
+def test_create_job_successfully_stores_serialized_json(redis_client, mock_redis_backend):
+    job_key = "job:123",
+    job_data = {"status": "pending"}
+    expected_ttl = 3600
 
-    mock_from_url.assert_called_once_with(mock_config.REDIS_URL)
-    assert client.redis == redis_mock
+    redis_client.create_job(job_key, job_data)
 
+    mock_redis_backend.set.assert_called_once_with(
+        job_key,
+        json.dumps(job_data),
+        ex=expected_ttl
+    )
 
-def test_create_job(redis_mock, mock_config):
-    with patch("app.services.redis_client.config", mock_config):
-        with patch(
-            "app.services.redis_client.redis.Redis.from_url",
-            return_value=redis_mock
-        ):
-            client = RedisClient()
-            job_data = {"status": "pending"}
-            client.create_job("job:123", job_data)
+def test_get_job_returns_raw_bytes_when_key_exists(redis_client, mock_redis_backend):
+    job_key = "job:123"
+    mock_redis_backend.get.return_value = b'{"status": "done"}'
 
-    redis_mock.set.assert_called_once()
-
-    args, kwargs = redis_mock.set.call_args
-
-    assert args[0] == "job:123"
-    assert json.loads(args[1]) == job_data
-    assert kwargs["ex"] == 3600
-
-def test_get_job(redis_mock, mock_config):
-    redis_mock.get.return_value = b'{"status": "done"}'
-
-    with patch("app.services.redis_client.config", mock_config):
-        with patch(
-            "app.services.redis_client.redis.Redis.from_url",
-            return_value=redis_mock
-        ):
-            client = RedisClient()
-            result = client.get_job("job:123")
+    result = redis_client.get_job(job_key)
 
     assert result == b'{"status": "done"}'
+    mock_redis_backend.get.assert_called_once_with(job_key)
 
-    redis_mock.get.assert_called_once_with("job:123")
+def test_get_job_returns_none_when_key_does_not_exist(redis_client, mock_redis_backend):
+    job_key = "job:missing"
+    mock_redis_backend.get.return_value = None
 
-def test_get_job_returns_none_if_missing(redis_mock, mock_config):
-    redis_mock.get.return_value = None
-
-    with patch("app.services.redis_client.config", mock_config):
-        with patch(
-            "app.services.redis_client.redis.Redis.from_url",
-            return_value=redis_mock
-        ):
-            client = RedisClient()
-            result = client.get_job("job:missing")
+    result = redis_client.get_job(job_key)
 
     assert result is None
+    mock_redis_backend.get.assert_called_once_with(job_key)
