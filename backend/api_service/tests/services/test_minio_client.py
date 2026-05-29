@@ -1,81 +1,55 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from app.services.minio_client import MinioClient
+from botocore.exceptions import ClientError
+
+TEST_BUCKET = "test-bucket"
 
 @pytest.fixture
-def mock_boto_client():
+def mock_boto_s3_client():
     return MagicMock()
 
 @pytest.fixture
-def mock_config():
-    class FakeConfig:
-        MINIO_ENDPOINT = "http://minio:9000"
-        MINIO_ACCESS_KEY = "test-key"
-        MINIO_SECRET_KEY = "test-secret"
-        MINIO_BUCKET = "images"
+def minio_client(mock_boto_s3_client):
+    return MinioClient(client=mock_boto_s3_client, bucket_name=TEST_BUCKET)
 
-    return FakeConfig()
+def test_generate_presigned_upload_url_success(minio_client, mock_boto_s3_client):
+    mock_boto_s3_client.generate_presigned_url.return_value = "https://upload-url.local"
 
-def test_minio_client_initialization(mock_boto_client, mock_config):
-    with patch("app.services.minio_client.config", mock_config):
-        with patch("app.services.minio_client.boto3.client", return_value=mock_boto_client) as mock_boto:
-            client = MinioClient()
+    result = minio_client.generate_presigned_upload_url("image.png", expires_in=1800)
 
-    mock_boto.assert_called_once()
-
-    args, kwargs = mock_boto.call_args
-
-    assert args[0] == "s3"
-    assert kwargs["endpoint_url"] == mock_config.MINIO_ENDPOINT
-    assert kwargs["aws_access_key_id"] == mock_config.MINIO_ACCESS_KEY
-    assert kwargs["aws_secret_access_key"] == mock_config.MINIO_SECRET_KEY
-
-    assert client.client == mock_boto_client
-
-def test_generate_presigned_upload_url(mock_boto_client, mock_config):
-    mock_boto_client.generate_presigned_url.return_value = "upload-url"
-
-    with patch("app.services.minio_client.config", mock_config):
-        with patch("app.services.minio_client.boto3.client", return_value=mock_boto_client):
-            client = MinioClient()
-            result = client.generate_presigned_upload_url("image.png")
-
-    assert result == "upload-url"
-
-    mock_boto_client.generate_presigned_url.assert_called_once_with(
+    assert result == "https://upload-url.local"
+    mock_boto_s3_client.generate_presigned_url.assert_called_once_with(
         "put_object",
-        Params={
-            "Bucket": mock_config.MINIO_BUCKET,
-            "Key": "image.png"
-        },
-        ExpiresIn=3600
+        Params={"Bucket": TEST_BUCKET, "Key": "image.png"},
+        ExpiresIn=1800
     )
 
-def test_generate_presigned_download_url(mock_boto_client, mock_config):
-    mock_boto_client.generate_presigned_url.return_value = "download-url"
+def test_generate_presigned_download_url_success(minio_client, mock_boto_s3_client):
+    mock_boto_s3_client.generate_presigned_url.return_value = "https://download-url.local"
 
-    with patch("app.services.minio_client.config", mock_config):
-        with patch("app.services.minio_client.boto3.client", return_value=mock_boto_client):
-            client = MinioClient()
-            result = client.generate_presigned_download_url("result.png")
+    result = minio_client.generate_presigned_download_url("result.png", expires_in=3600)
 
-    assert result == "download-url"
+    assert result == "https://download-url.local"
 
-    mock_boto_client.generate_presigned_url.assert_called_once_with(
+    mock_boto_s3_client.generate_presigned_url.assert_called_once_with(
         "get_object",
         Params={
-            "Bucket": mock_config.MINIO_BUCKET,
+            "Bucket": TEST_BUCKET,
             "Key": "result.png"
         },
         ExpiresIn=3600
     )
 
-def test_head_object_propagates_exception(mock_boto_client, mock_config):
-    mock_boto_client.head_object.side_effect = Exception("not found")
+def test_head_object_success_when_object_exists(minio_client, mock_boto_s3_client):
+    mock_boto_s3_client.head_object.return_value = {"ContentLength": 100}
 
-    with patch("app.services.minio_client.config", mock_config):
-        with patch("app.services.minio_client.boto3.client", return_value=mock_boto_client):
-            client = MinioClient()
+    minio_client.head_object("existing.png")
+    mock_boto_s3_client.head_object.assert_called_once_with(Bucket=TEST_BUCKET, Key="existing.png")
 
-            with pytest.raises(Exception):
-                client.head_object("missing.png")
+def test_head_object_raises_client_error_when_missing(minio_client, mock_boto_s3_client):
+    error_response = {"Error": {"Code": "404", "Message": "Not Found"}}
+    mock_boto_s3_client.head_object.side_effect = ClientError(error_response, "HeadObject")
+
+    with pytest.raises(ClientError):
+        minio_client.head_object("missing.png")
