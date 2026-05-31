@@ -52,6 +52,8 @@ The actual image processing is handled by a dedicated Worker service. This servi
 
 **Reliability**: A GitHub Actions workflow is integrated to run automated tests and check code coverage on every push.
 
+**Shared Observability Library**: Logging is decoupled into a dedicated, reusable GitHub repository (`fastapi-observability-lib`). This ensures consistent JSON log formatting across both the API and Worker services.
+
 ## Running the Application
 
 ### Prerequisites
