@@ -4,13 +4,24 @@ import sys
 from worker.rabbitmq_consumer import RabbitMQConsumer
 from worker.redis_client import RedisClient
 from worker.image_processor import process_job_logic
-from worker.logging_config import setup_logging
+from my_observability import setup_logging
 from worker.minio_client import MinioClient
+from worker.config import config
 
 logger = logging.getLogger(__name__)
 
+INFRASTRUCTURE_LOGGERS = {
+    "botocore": {"level": "INFO"},
+    "boto3": {"level": "INFO"},
+    "urllib3": {"level": "INFO"},
+    "pika": {"level": "INFO"},
+}
+
 def main():
-    setup_logging()
+    setup_logging(
+        log_level=config.LOG_LEVEL,
+        extra_loggers=INFRASTRUCTURE_LOGGERS
+    )
     redis_client = RedisClient()
     minio_client = MinioClient()
 
