@@ -1,29 +1,32 @@
-FROM python:3.14-slim
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    OPENCV_VIDEOIO_PRIORITY_BACKEND=0
+FROM python:3.14-slim as builder
 
 WORKDIR /worker
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        libgl1 \
-        libglib2.0-0 \
-        libsm6 \
-        libxrender1 \
-        libxext6 \
-        build-essential \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends git build-essential && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+
+RUN python -m venv /opt/venv && \
+    /opt/venv/bin/pip install --no-cache-dir --upgrade pip && \
+    /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+FROM python:3.14-slim
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    OPENCV_VIDEOIO_PRIORITY_BACKEND=0 \
+    PATH="/opt/venv/bin:$PATH"
+
+WORKDIR /worker
 
 RUN addgroup --system workergroup && adduser --system --group workeruser
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+COPY --from=builder /opt/venv /opt/venv
 
 COPY . .
+
 RUN chown -R workeruser:workergroup /worker
 
 USER workeruser
