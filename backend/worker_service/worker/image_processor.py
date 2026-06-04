@@ -1,9 +1,9 @@
 from worker.utils.image_io import load_image_from_bytes, encode_image
 from worker.domain import morphological_operations as morph
-import logging
 from worker.exceptions import ValidationError, BadRequestError
+from my_observability import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 def process_job_logic(job_id, redis_client, minio_client):
     job = redis_client.get_job(job_id)

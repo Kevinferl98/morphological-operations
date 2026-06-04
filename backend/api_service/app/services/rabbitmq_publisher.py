@@ -1,9 +1,9 @@
 import json
-import logging
 import os
 import pika
+from my_observability import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 DEFAULT_RABBITMQ_URL = os.getenv("RABBITMQ_URL", "amqp://guest:guest@rabbitmq:5672/")
 DEFAULT_QUEUE_NAME = "image_jobs"

@@ -1,10 +1,10 @@
 import json
-import logging
 import pika
 import time
 from worker.config import config
+from my_observability import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class RabbitMQConsumer:
     def __init__(self, callback):

@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes.jobs import router
 from app.config import config
-from my_observability import setup_logging
+from my_observability import setup_observability, setup_fastapi_logging
 
 INFRASTRUCTURE_LOGGERS = {
     "botocore": {"level": "INFO"},
@@ -11,7 +11,7 @@ INFRASTRUCTURE_LOGGERS = {
     "pika": {"level": "INFO"},
 }
 
-setup_logging(
+setup_observability(
     log_level=config.LOG_LEVEL,
     extra_loggers=INFRASTRUCTURE_LOGGERS
 )
@@ -27,3 +27,5 @@ app.add_middleware(
 )
 
 app.include_router(router)
+
+setup_fastapi_logging(app)
