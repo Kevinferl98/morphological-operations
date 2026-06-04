@@ -4,7 +4,7 @@ import sys
 from worker.rabbitmq_consumer import RabbitMQConsumer
 from worker.redis_client import RedisClient
 from worker.image_processor import process_job_logic
-from my_observability import setup_logging
+from my_observability import setup_observability
 from worker.minio_client import MinioClient
 from worker.config import config
 
@@ -18,7 +18,7 @@ INFRASTRUCTURE_LOGGERS = {
 }
 
 def main():
-    setup_logging(
+    setup_observability(
         log_level=config.LOG_LEVEL,
         extra_loggers=INFRASTRUCTURE_LOGGERS
     )
