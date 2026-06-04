@@ -1,5 +1,4 @@
 import uuid
-import logging
 import json
 from app.services.redis_client import RedisClient
 from app.services.minio_client import MinioClient
