@@ -6,8 +6,9 @@ from app.services.minio_client import MinioClient
 from app.services.rabbitmq_publisher import RabbitMQPublisher
 from app.exceptions import BadRequestError, NotFoundError
 from app.schemas.job import MorphologicalParams
+from my_observability import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class JobService:
     def __init__(self, redis: RedisClient, publisher: RabbitMQPublisher, minio_client: MinioClient):
