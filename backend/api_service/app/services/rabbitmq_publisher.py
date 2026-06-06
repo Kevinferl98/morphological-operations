@@ -2,6 +2,7 @@ import json
 import os
 import pika
 from my_observability import get_logger
+from app.mq_setup import setup_rabbitmq_topology
 
 logger = get_logger(__name__)
 
@@ -23,6 +24,7 @@ class RabbitMQPublisher:
             params = pika.URLParameters(self.amqp_url)
             self.connection = self._connection_factory(params)
             self.channel = self.connection.channel()
+            setup_rabbitmq_topology(self.channel)
 
     def publish_job(self, job_id):
         self._ensure_connection()

@@ -15,7 +15,6 @@ services:
     depends_on:
       rabbitmq: { condition: service_healthy }
       redis: { condition: service_healthy}
-      worker_service: { condition: service_started }
     networks:
       - frontend_net
       - backend_net
