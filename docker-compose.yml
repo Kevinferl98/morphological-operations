@@ -17,6 +17,7 @@ services:
       redis: { condition: service_healthy}
       worker_service: { condition: service_started }
     networks:
+      - frontend_net
       - backend_net
 
   worker_service:
@@ -39,7 +40,7 @@ services:
     depends_on:
       - api-service
     networks:
-      - backend_net
+      - frontend_net
     
   redis:
     image: redis:8.4.0-alpine
@@ -86,6 +87,8 @@ services:
       - backend_net
 
 networks:
+  frontend_net:
+    driver: bridge
   backend_net:
     driver: bridge
 
