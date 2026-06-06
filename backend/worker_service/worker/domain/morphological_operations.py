@@ -2,9 +2,9 @@ import numpy as np
 import cv2
 from enum import Enum
 from worker.exceptions import ValidationError
-import logging
+from my_observability import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 class ImageType(Enum):
     BLACK_AND_WHITE = 1

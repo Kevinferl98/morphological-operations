@@ -1,14 +1,14 @@
-import logging
 import signal
 import sys
 from worker.rabbitmq_consumer import RabbitMQConsumer
 from worker.redis_client import RedisClient
 from worker.image_processor import process_job_logic
 from my_observability import setup_observability
+from my_observability import get_logger
 from worker.minio_client import MinioClient
 from worker.config import config
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 INFRASTRUCTURE_LOGGERS = {
     "botocore": {"level": "INFO"},
