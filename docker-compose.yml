@@ -80,8 +80,33 @@ services:
     ports:
       - "9000:9000"
       - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     volumes: 
       - minio_data:/data
+    networks:
+      - backend_net
+
+  terraform-provisioner:
+    image: hashicorp/terraform:1.15
+    container_name: terraform_provisioner
+    working_dir: /infra
+    entrypoint: >
+      /bin/sh -c "
+      terraform init &&
+      terraform apply -auto-approve
+      "
+    volumes:
+      - ./infra:/infra
+    environment:
+      TF_VAR_minio_access_key: ${MINIO_ROOT_USER}
+      TF_VAR_minio_secret_key: ${MINIO_ROOT_PASSWORD}
+      TF_VAR_minio_endpoint: "http://minio:9000"
+    depends_on:
+      minio: { condition: service_healthy }
     networks:
       - backend_net
 
