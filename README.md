@@ -58,38 +58,16 @@ The actual image processing is handled by a dedicated Worker service. This servi
 
 ### Prerequisites
 - Docker  
-- Docker Compose  
-- Terraform
-
+- Docker Compose
 
 ### Setup
 
-1. Configure credentials in `infra/terraform.tfvars` for MinIO:
-   ```hcl
-   minio_access_key = "YOUR_ACCESS_KEY"
-   minio_secret_key = "YOUR_SECRET_KEY"
-   ```
-
-2. Create a `.env` file in the project root and configure MinIO credentials:
-   ```env
-   MINIO_ROOT_USER=your_minio_user
-   MINIO_ROOT_PASSWORD=your_minio_password
-   ```
-
-3. Start the MinIO service:
+1. Copy the example environment file to create your local `.env` file:
    ```bash
-   docker compose up -d minio
+   cp .env.example .env
    ```
 
-4. Provision the bucket using Terraform:
-   ```bash
-   cd infra
-   terraform init
-   terraform apply
-   cd ..
-   ```
-
-5. Launch the full application:
+2. Launch the full application using Docker Compose:
    ```bash
    docker compose up -d
    ```

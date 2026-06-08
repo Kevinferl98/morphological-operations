@@ -4,14 +4,23 @@ x-common-env: &common-env
     MINIO_ROOT_USER: ${MINIO_ROOT_USER}
     MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
 
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   api-service:
     build: ./backend/api_service
     container_name: api_service
+    restart: unless-stopped
+    logging: *default-logging
     ports: 
       - "8000:8000"
     environment:
       <<: *common-env
+    stop_grace_period: 30s
     depends_on:
       rabbitmq: { condition: service_healthy }
       redis: { condition: service_healthy}
@@ -22,9 +31,12 @@ services:
   worker_service:
     build: ./backend/worker_service
     container_name: worker_service
+    restart: unless-stopped
+    logging: *default-logging
     environment:
       <<: *common-env
       APP_ENV: development
+    stop_grace_period: 45s
     depends_on:
       rabbitmq: { condition: service_healthy }
       redis: { condition: service_healthy}
@@ -34,6 +46,8 @@ services:
   frontend:
     build: ./frontend
     container_name: frontend_nginx
+    restart: unless-stopped
+    logging: *default-logging
     ports:
       - "8080:8080"
     depends_on:
@@ -44,6 +58,8 @@ services:
   redis:
     image: redis:8.4.0-alpine
     container_name: redis
+    restart: unless-stopped
+    logging: *default-logging
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -57,6 +73,8 @@ services:
   rabbitmq:
     image: rabbitmq:4.2.2-management
     container_name: rabbitmq
+    restart: unless-stopped
+    logging: *default-logging
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
@@ -71,17 +89,45 @@ services:
       - backend_net
 
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
     command: server /data --console-address ":9001"
     container_name: minio
+    restart: unless-stopped
+    logging: *default-logging
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     ports:
       - "9000:9000"
       - "9001:9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
     volumes: 
       - minio_data:/data
+    networks:
+      - backend_net
+
+  terraform-provisioner:
+    image: hashicorp/terraform:1.15
+    container_name: terraform_provisioner
+    working_dir: /infra
+    restart: "no"
+    entrypoint: >
+      /bin/sh -c "
+      terraform init &&
+      terraform apply -auto-approve
+      "
+    volumes:
+      - ./infra:/infra
+    environment:
+      TF_VAR_minio_access_key: ${MINIO_ROOT_USER}
+      TF_VAR_minio_secret_key: ${MINIO_ROOT_PASSWORD}
+      TF_VAR_minio_endpoint: "http://minio:9000"
+    depends_on:
+      minio: { condition: service_healthy }
     networks:
       - backend_net
 
